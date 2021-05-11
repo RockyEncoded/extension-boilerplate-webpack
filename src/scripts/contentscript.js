@@ -1,25 +1,35 @@
-import React from 'react'
-import { render } from 'react-dom'
-import { Store } from 'react-chrome-redux'
-import { Provider } from 'react-redux'
+import ext from './utils/ext'
 
-import PageScannerContainer from './containers/page-scanner'
+const extractTags = () => {
+  const url = document.location.href
+  if (!url || !url.match(/^http/)) return
 
-const extension = '/* @echo extension */'
-const proxyStore = new Store({
-  portName: 'extension-demo-app',
-  extensionId: extension === 'firefox' ? 'my-app-id@mozilla.org' : ''
-})
+  const data = {
+    title: '',
+    description: '',
+    url: document.location.href
+  }
 
-let renderDOM = () => {
-  render(
-    <Provider store={proxyStore}>
-      <PageScannerContainer />
-    </Provider>
-    , document.createElement('div')    // anonymous div
-  )
+  const ogTitle = document.querySelector("meta[property='og:title']")
+  if (ogTitle) {
+    data.title = ogTitle.getAttribute('content')
+  } else {
+    data.title = document.title
+  }
+
+  const descriptionTag = document.querySelector("meta[property='og:description']") ||
+    document.querySelector("meta[name='description']")
+  if (descriptionTag) {
+    data.description = descriptionTag.getAttribute('content')
+  }
+
+  return data
 }
 
-proxyStore.ready().then(() => {
-  renderDOM()
-})
+function onRequest (request, sender, sendResponse) {
+  if (request.action === 'process-page') {
+    sendResponse(extractTags())
+  }
+}
+
+ext.runtime.onMessage.addListener(onRequest)

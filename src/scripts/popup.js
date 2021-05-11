@@ -1,21 +1,64 @@
-import React from 'react'
-import { render } from 'react-dom'
-import { Store } from 'react-chrome-redux'
-import { Provider } from 'react-redux'
+import ext from './utils/ext'
+import storage from './utils/storage'
 
-import PopupContainer from './containers/popup'
-
-const extension = '/* @echo extension */'
-const proxyStore = new Store({
-  portName: 'extension-demo-app',
-  extensionId: extension === 'firefox' ? 'my-app-id@mozilla.org' : ''
+const popup = document.getElementById('app')
+storage.get('color', function (resp) {
+  const color = resp.color
+  if (color) {
+    popup.style.backgroundColor = color
+  }
 })
 
-proxyStore.ready().then(() => {
-  render(
-    <Provider store={proxyStore}>
-      <PopupContainer />
-    </Provider>
-    , document.getElementById('app')
-  )
+const template = (data) => {
+  const json = JSON.stringify(data)
+  return (`
+  <div class="site-description">
+    <h3 class="title">${data.title}</h3>
+    <p class="description">${data.description}</p>
+    <a href="${data.url}" target="_blank" class="url">${data.url}</a>
+  </div>
+  <div class="action-container">
+    <button data-bookmark='${json}' id="save-btn" class="btn btn-primary">Save</button>
+  </div>
+  `)
+}
+const renderMessage = (message) => {
+  const displayContainer = document.getElementById('display-container')
+  displayContainer.innerHTML = `<p class='message'>${message}</p>`
+  console.log('Hello')
+}
+
+const renderBookmark = (data) => {
+  const displayContainer = document.getElementById('display-container')
+  if (data) {
+    const tmpl = template(data)
+    displayContainer.innerHTML = tmpl
+  } else {
+    renderMessage("Sorry, could not extract this page's title and URL")
+  }
+}
+
+ext.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+  const activeTab = tabs[0]
+  ext.tabs.sendMessage(activeTab.id, { action: 'process-page' }, renderBookmark)
+})
+
+popup.addEventListener('click', function (e) {
+  if (e.target && e.target.matches('#save-btn')) {
+    e.preventDefault()
+    const data = e.target.getAttribute('data-bookmark')
+    ext.runtime.sendMessage({ action: 'perform-save', data: data }, function (response) {
+      if (response && response.action === 'saved') {
+        renderMessage('Your bookmark was saved successfully!')
+      } else {
+        renderMessage('Sorry, there was an error while saving your bookmark.')
+      }
+    })
+  }
+})
+
+const optionsLink = document.querySelector('.js-options')
+optionsLink.addEventListener('click', function (e) {
+  e.preventDefault()
+  ext.tabs.create({ url: ext.extension.getURL('options.html') })
 })

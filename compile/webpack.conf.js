@@ -1,24 +1,27 @@
-var fs = require('fs')
-var path = require('path')
-var webpack = require('webpack')
+const fs = require('fs')
+const path = require('path')
+const webpack = require('webpack')
+const package = require('../package.json')
 
-var CopyWebpackPlugin = require('copy-webpack-plugin')
-var ExtractTextPlugin = require('extract-text-webpack-plugin')
-var GenerateJsonPlugin = require('generate-json-webpack-plugin')
-var WriteFilePlugin = require('write-file-webpack-plugin')
-var LiveReloadPlugin = require('webpack-weex-livereload-plugin')
-var ZipPlugin = require('zip-webpack-plugin')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+const GenerateJsonPlugin = require('generate-json-webpack-plugin')
+const WriteFilePlugin = require('write-file-webpack-plugin')
+const LiveReloadPlugin = require('webpack-livereload-plugin')
+const ZipPlugin = require('zip-webpack-plugin')
+const TerserPlugin = require('terser-webpack-plugin')
+const ESLintPlugin = require('eslint-webpack-plugin')
 
-var production = process.env.NODE_ENV === "production"
-var target = process.env.TARGET || "chrome"
-var environment = process.env.NODE_ENV || "development"
+const production = process.env.NODE_ENV === "production"
+const target = process.env.TARGET || "chrome"
+const environment = process.env.NODE_ENV || "development"
 
-var generic = JSON.parse(fs.readFileSync(`./config/${environment}.json`))
-var specific = JSON.parse(fs.readFileSync(`./config/${target}.json`))
-var context = Object.assign({}, generic, specific)
+const generic = JSON.parse(fs.readFileSync(`./config/${environment}.json`))
+const specific = JSON.parse(fs.readFileSync(`./config/${target}.json`))
+const context = Object.assign({}, generic, specific)
 
-var manifestTemplate = JSON.parse(fs.readFileSync(`./manifest.json`))
-var manifestOptions = {
+const manifestTemplate = JSON.parse(fs.readFileSync(`./manifest.json`))
+const manifestOptions = {
   firefox: {
     "applications": {
       "gecko": {
@@ -27,10 +30,15 @@ var manifestOptions = {
     }
   }
 }
-var manifest = Object.assign(
+const manifest = Object.assign(
     {},
     manifestTemplate,
-    target === 'firefox' ? manifestOptions.firefox : {}
+    target === 'firefox' ? manifestOptions.firefox : {},
+    {
+      name: package.name,
+      version: package.version,
+      description: package.description
+    }
 )
 
 function resolve(dir) {
@@ -42,10 +50,11 @@ function replaceQuery(query) {
 }
 
 function copy(context, from, to) {
-  return { context, from, to }
+  return { context, from, to, noErrorOnMissing: true}
 }
 
-var webpackConfig = {
+const webpackConfig = {
+  mode: (environment === 'development' ? 'development' : 'production'),
   entry: {
     background: './src/scripts/background.js',
     contentscript: './src/scripts/contentscript.js',
@@ -66,7 +75,6 @@ var webpackConfig = {
       'src': resolve('src'),
       'actions': resolve('src/scripts/actions'),
       'components': resolve('src/scripts/components'),
-      'reducers': resolve('src/scripts/reducers'),
       'services': resolve('src/scripts/services')
     }
   },
@@ -75,12 +83,12 @@ var webpackConfig = {
       {
         test: /\.js$/,
         loader: 'babel-loader',
-        include: [resolve('src')]
+        exclude: /node_modules/
       },
       {
         test: /\.js$/,
         loader: 'string-replace-loader',
-        query: {
+        options: {
           multiple: Object.keys(context).map(function(key) {
             return {
               search: replaceQuery(key),
@@ -90,24 +98,24 @@ var webpackConfig = {
         }
       },
       {
-        test: /\.scss$/,
-        use: ExtractTextPlugin.extract({
-          fallback: 'style-loader',
-          use: ['css-loader','sass-loader']
-        })
+        test: /\.(sa|s?c)ss$/i,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader']
       }
     ]
   },
   plugins: [
-    new CopyWebpackPlugin([
-      copy('./src/icons', '**/*', `icons`),
-      copy('./src/_locales', '**/*', `_locales`),
-      copy(`./src/images`, '**/*', `images`),
-      copy('./src/images/shared', '**/*', `images`),
-      copy('./src', '**/*.html', `.`),
-    ]),
+    new ESLintPlugin(),
+    new CopyWebpackPlugin({
+      patterns: [
+        copy('./src/icons', '**/*', `icons`),
+        copy('./src/_locales', '**/*', `_locales`),
+        copy(`./src/images`, '**/*', `images`),
+        copy('./src/images/shared', '**/*', `images`),
+        copy('./src', '**/*.html', `.`),
+      ]
+    }),
     new GenerateJsonPlugin(`manifest.json`, manifest),
-    new ExtractTextPlugin(`styles/[name].css`),
+    new MiniCssExtractPlugin({filename: `styles/[name].css`}),
     new webpack.DefinePlugin({
       'process.env': require(`../env/${environment}.env`)
     })
@@ -115,13 +123,24 @@ var webpackConfig = {
 }
 
 if (production) {
+  const zipFile = `${package.name}-v${package.version}-${target}.zip`
   webpackConfig.output.path = resolve(`dist/${target}`)
   webpackConfig.plugins = webpackConfig.plugins.concat([
-    new webpack.optimize.UglifyJsPlugin({
-      mangle: false,
-      output: { ascii_only: true }
+    new TerserPlugin({
+        extractComments: false,
+        terserOptions: {
+            format: {
+                comments: false,
+            },
+            compress: {
+                pure_funcs: [ 'console.info', 'console.debug', 'console.warn', 'console.log' ],
+            },
+            keep_classnames: true,
+            mangle: true,
+            module: true,
+          },
     }),
-    new ZipPlugin({ filename: `${target}.zip` })
+    new ZipPlugin({ filename: zipFile })
   ])
 } else {
   webpackConfig.entry.background = [
@@ -129,8 +148,8 @@ if (production) {
     './src/scripts/background.js'
   ]
   webpackConfig.plugins = webpackConfig.plugins.concat([
-    new WriteFilePlugin(),
-    new LiveReloadPlugin({ port: 35729, message: 'reload' })
+    // new WriteFilePlugin(),
+    new LiveReloadPlugin({ port: 35729 })
   ])
 }
 
