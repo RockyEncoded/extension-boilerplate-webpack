@@ -77,13 +77,23 @@ The Chrome Extensions is available [on the Chrome Web Store](https://chrome.goog
   </dd>
 </dl>
 
+<dl>
+  <dt>[UPDATE: May 2021] Webpack Updates & React/Redux Removal</dt>
+  <dd>
+    This is forked from an earlier fork that ported everything to webpack & React/Redux.
+  </dd>
+  <dd>
+    This fork updates all the packages in it, to either newer versions or alternate packages where the earlier ones are deprecated or not supported anymore. Also, removes React/Redux and restores the original vanilla JS version.
+  </dd>
+</dl>
+
 
 ## Installation
-1. Clone the repository `git clone https://github.com/EmailThis/extension-boilerplate.git`
+1. Clone the repository `git clone https://github.com/RockyEncoded/extension-boilerplate-webpack.git`
 2. Run `npm install`
 3. Run `npm run build`
 
-Alternately, if you want to try out the sample extension, here are the download links. After you download it, unzip the file and load it in your browser using the steps mentioned below.
+Alternately, if you want to try out the sample extension, here are the download links, for the original version. After you download it, unzip the file and load it in your browser using the steps mentioned below.
  - [**Download Chrome Extension**](https://github.com/EmailThis/extension-boilerplate/releases/download/v1.0/chrome.zip)
  - [**Download Opera Extension**](https://github.com/EmailThis/extension-boilerplate/releases/download/v1.0/opera.zip)
  - [**Download Firefox Extension**](https://github.com/EmailThis/extension-boilerplate/releases/download/v1.0/firefox.zip)
@@ -101,13 +111,13 @@ Alternately, if you want to try out the sample extension, here are the download 
 
 
 ## Developing
-The following tasks can be used when you want to start developing the extension and want to enable live reload - 
+The following tasks can be used when you want to start developing the extension and want to enable live reload (lint is enabled by default) - 
 
 - `npm run chrome-watch`
 - `npm run opera-watch`
 - `npm run firefox-watch`
 
-If you want to use lint or auto fix -
+If you want to run lint separately or auto fix -
 - `npm run lint`
 - `npm run lint:fix`
 
