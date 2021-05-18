@@ -1,8 +1,8 @@
-import ext from './utils/ext'
+import ext from 'webextension-polyfill'
 import storage from './utils/storage'
 
 const popup = document.getElementById('app')
-storage.get('color', function (resp) {
+storage.get('color').then(function (resp) {
   const color = resp.color
   if (color) {
     popup.style.backgroundColor = color
@@ -25,7 +25,6 @@ const template = (data) => {
 const renderMessage = (message) => {
   const displayContainer = document.getElementById('display-container')
   displayContainer.innerHTML = `<p class='message'>${message}</p>`
-  console.log('Hello')
 }
 
 const renderBookmark = (data) => {
@@ -38,21 +37,25 @@ const renderBookmark = (data) => {
   }
 }
 
-ext.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+ext.tabs.query({ active: true, currentWindow: true }).then(function (tabs) {
   const activeTab = tabs[0]
-  ext.tabs.sendMessage(activeTab.id, { action: 'process-page' }, renderBookmark)
+  ext.tabs.sendMessage(activeTab.id, { action: 'process-page' }).then(renderBookmark)
 })
 
 popup.addEventListener('click', function (e) {
   if (e.target && e.target.matches('#save-btn')) {
     e.preventDefault()
     const data = e.target.getAttribute('data-bookmark')
-    ext.runtime.sendMessage({ action: 'perform-save', data: data }, function (response) {
-      if (response && response.action === 'saved') {
-        renderMessage('Your bookmark was saved successfully!')
-      } else {
-        renderMessage('Sorry, there was an error while saving your bookmark.')
+    ext.runtime.sendMessage({ action: 'perform-save', data: data }).then(
+      function (response) {
+        if (response && response.action === 'saved') {
+          renderMessage('Your bookmark was saved successfully!')
+        } else {
+          renderMessage('Sorry, there was an error while saving your bookmark.')
+        }
       }
+    ).catch(() => {
+      renderMessage('Sorry, there was an error while saving your bookmark.')
     })
   }
 })

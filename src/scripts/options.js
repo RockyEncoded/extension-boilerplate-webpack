@@ -6,7 +6,7 @@ const setColor = (color) => {
   document.body.style.backgroundColor = color
 }
 
-storage.get('color', function (resp) {
+storage.get('color').then(function (resp) {
   const color = resp.color
   let option
   if (color) {
@@ -22,7 +22,7 @@ storage.get('color', function (resp) {
 colorSelectors.forEach(function (el) {
   el.addEventListener('click', function (e) {
     const value = this.value
-    storage.set({ color: value }, function () {
+    storage.set({ color: value }).then(function () {
       setColor(value)
     })
   })

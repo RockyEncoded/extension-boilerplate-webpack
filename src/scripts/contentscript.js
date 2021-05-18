@@ -1,4 +1,4 @@
-import ext from './utils/ext'
+import ext from 'webextension-polyfill'
 
 const extractTags = () => {
   const url = document.location.href
