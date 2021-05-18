@@ -1,6 +1,6 @@
 {
   "name": "extension-boilerplate-webpack",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A template for creating cross-browser extensions",
   "scripts": {
     "lint": "./node_modules/.bin/eslint src",
@@ -54,6 +54,7 @@
     "string-replace-loader": "^3.0.1",
     "style-loader": "^2.0.0",
     "terser-webpack-plugin": "^5.1.1",
+    "webextension-polyfill": "^0.8.0",
     "webpack": "^5.37.0",
     "webpack-bundle-analyzer": "^4.4.1",
     "webpack-cli": "^4.7.0",

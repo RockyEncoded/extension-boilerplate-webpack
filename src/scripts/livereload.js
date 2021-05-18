@@ -1,6 +1,6 @@
 'use strict'
 
-import ext from './utils/ext'
+import ext from 'webextension-polyfill'
 
 const LIVERELOAD_HOST = 'localhost:'
 const LIVERELOAD_PORT = 35729
